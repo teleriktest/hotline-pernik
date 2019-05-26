@@ -23,6 +23,7 @@ function drawImageRot(img, x, y, sx, sy, angle){
     context.restore();
 }
 var human_img = tryToLoad("human", "blue");
+var human_dead_img = tryToLoad("human_dead", "red");
 
 class Human{
     constructor(ind, x, y){
@@ -31,6 +32,7 @@ class Human{
         this.oldx = x;
         this.oldy = y;
         this.img = human_img;
+        this.img_dead = human_dead_img;
         this.sx = 60;
         this.sy = 60;
         this.angle = 0;
@@ -41,27 +43,33 @@ class Human{
         this.hp = 100;
     }
     shoot(){
+        if (this.hp<=0) return;
         if (this.held != -1){
             weapons[this.held].shoot();
         }
     }
     moveForward(){
+        if (this.hp<=0) return;
         this.x += Math.cos(this.angle)*this.speed;
         this.y += Math.sin(this.angle)*this.speed;
     }
     moveBack(){
+        if (this.hp<=0) return;
         this.x -= Math.cos(this.angle)*this.speed;
         this.y -= Math.sin(this.angle)*this.speed;
     }
     moveRight(){
+        if (this.hp<=0) return;
         this.x -= Math.sin(this.angle)*this.speed;
         this.y += Math.cos(this.angle)*this.speed;
     }
     moveLeft(){
+        if (this.hp<=0) return;
         this.x += Math.sin(this.angle)*this.speed;
         this.y -= Math.cos(this.angle)*this.speed;
     }
     pickup(){
+        if (this.hp<=0) return;
         let ind = -1, mind = -1;
         for (let i=0; i<weapons.length; ++i){
             let currd = d(this.x, this.y, weapons[i].x, weapons[i].y);
@@ -77,9 +85,20 @@ class Human{
         }
     }
     draw(){
-        drawImageRot(this.img, this.x, this.y, this.sx, this.sy, this.angle);
+        if (this.hp > 0){
+            drawImageRot(this.img, this.x, this.y, this.sx, this.sy, this.angle);
+        }else{
+            drawImageRot(this.img_dead, this.x, this.y, this.sx, this.sy, this.angle);
+        }
     }
     update(){
+        if (this.hp<=0){
+            if (this.held != -1){
+                weapons[this.held].drop();
+                this.held = -1;
+            }
+            return;
+        }
         //collision with walls
         for (let i=0; i<walls.length; ++i){
             if (areRotColliding(this, walls[i])){
@@ -90,6 +109,12 @@ class Human{
         }
         this.oldx = this.x;
         this.oldy = this.y;
+        for (let i=0; i<projectiles.length; ++i){
+            if (projectiles[i].who != this.ind && areRotColliding(projectiles[i], this)){
+                this.hp -= projectiles[i].dmg;
+                rem_projectile(i--);
+            }
+        }
     }
     onkeyup(key){}
     onmouseup(){}
@@ -98,6 +123,7 @@ class Enemy extends Human{}
 class BasicEnemy extends Enemy{
     update(){
         super.update();
+        if (this.hp<=0) return;
         this.pickup();
         this.angle = Math.atan2(humans[0].y - this.y, humans[0].x - this.x);
         this.shoot();
@@ -107,6 +133,7 @@ class BasicEnemy extends Enemy{
 class Player extends Human{
     update(){
         super.update();
+        if (this.hp<=0) return;
         if (isKeyPressed[87]) this.moveForward();
         if (isKeyPressed[83]) this.moveBack();
         if (isKeyPressed[65]) this.moveLeft();
@@ -180,7 +207,14 @@ class Projectile{
         this.img = projectile_img;
         this.ang = 0;
     }
-    update(){}
+    update(){
+        if (this.x < -100 || this.x > 900 || this.y < -100 || this.y > 700) this.x = NaN;
+        for (let i=0; i<walls.length; ++i){
+            if (areRotColliding(this, walls[i])){
+                this.x = NaN;
+            }
+        }
+    }
     draw(){
         drawImageRot(this.img, this.x, this.y, this.sx, this.sy, this.ang);
     }
@@ -192,8 +226,10 @@ class Bullet extends Projectile{
         this.dx = (tx-x)/dist*this.speed;
         this.dy = (ty-y)/dist*this.speed;
         this.ang = Math.atan2(ty-y, tx-x);
+        this.dmg = 10;
     }
     update(){
+        super.update();
         this.x += this.dx;
         this.y += this.dy;
     }
@@ -227,15 +263,33 @@ var humans = [new Player(0, 400, 300), new BasicEnemy(1, 100, 100)];
 var weapons = [new Pistol(200, 200), new Pistol(500, 500)];
 var walls = [new Wall(300, 300, 10, 100, Math.PI/2), new Wall(350, 250, 10, 100, 0)];
 
+function rem_human(i){
+    humans[i] = humans[humans.length-1];
+    humans[i].ind = i;
+    if(humans[i].held!=-1) weapons[humans[i].held].held_by = i;
+    humans.pop();
+}
+
+function rem_projectile(i){
+    projectiles[i] = projectiles[projectiles.length-1];
+    projectiles.pop();
+}
+
+function gameover(){}
+
 function update() {
     for (let i=0; i<humans.length; ++i){
         humans[i].update();
+        /*if (humans[i].hp <= 0){
+            rem_human(i--);
+        }*/
     }
     for (let i=0; i<weapons.length; ++i){
         weapons[i].update();
     }
     for (let i=0; i<projectiles.length; ++i){
         projectiles[i].update();
+        if (projectiles[i].x!=projectiles[i].x) rem_projectile(i--);
     }
 }
 function draw() {
