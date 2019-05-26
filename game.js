@@ -154,7 +154,7 @@ class Weapon{
         if (this.held_by == -1){
             drawImageRot(this.img_down, this.x, this.y, this.sx, this.sy, this.angle);
         }else{
-            drawImageRot(this.img_down, this.x, this.y, this.sx, this.sy, this.angle);
+            drawImageRot(this.img_held, this.x, this.y, this.sx, this.sy, this.angle);
         }
     }
 };
