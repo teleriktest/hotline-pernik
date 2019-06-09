@@ -196,6 +196,21 @@ class Pistol extends Weapon{
         }
     }
 }
+class Shotgun extends Weapon {
+    constructor(x, y) {
+        super(x, y);
+        this.number_of_projectiles = 5;
+        this.reload_time = 45;
+    }
+    shoot() {
+        if(this.curr_reload <= 0) {
+            for(let i = 0; i < this.number_of_projectiles; i++) {
+                projectiles.push(new Bullet(this.x, this.y, this.x + Math.cos(this.angle + Math.random()*0.6 - 0.3), this.y + Math.sin(this.angle + Math.random()*0.6 - 0.3), this.held_by));
+            }
+            this.curr_reload = this.reload_time;
+        }
+    }
+}
 var projectile_img = tryToLoad("projectile", "yellow");
 class Projectile{
     constructor(x, y, tx, ty, who){
@@ -263,7 +278,7 @@ class Door extends Wall{
 
 var projectiles = [];
 var humans = [new Player(0, 400, 300), new BasicEnemy(1, 100, 100)];
-var weapons = [new Pistol(200, 200), new Pistol(500, 500)];
+var weapons = [new Pistol(200, 200), new Shotgun(500, 500)];
 var walls = [new Wall(300, 300, 10, 100, Math.PI/2), new Wall(350, 250, 10, 100, 0)];
 
 function rem_human(i){
