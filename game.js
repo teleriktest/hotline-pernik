@@ -193,6 +193,21 @@ class Pistol extends Weapon{
         }
     }
 }
+class Granade extends Weapon{
+  constructor(x, y) {
+    super(x, y);
+    this.sx = 15;
+    this.sy = 15;
+    this.img_down = tryToLoad("granade_floor", "grey");
+    this.img_held = tryToLoad("granade_held", "green");
+  }
+  shoot() {
+    if (this.curr_reload <= 0) {
+      projectiles.push(new ThrownGranade(this.x, this.y, this.x + Math.cos(this.angle) * 10, this.y + Math.sin(this.angle) * 10, this.held_by))
+      this.curr_reload = this.reload_time;
+    }
+  }
+}
 var projectile_img = tryToLoad("projectile", "yellow");
 class Projectile{
     constructor(x, y, tx, ty, who){
@@ -233,6 +248,35 @@ class Bullet extends Projectile{
         this.x += this.dx;
         this.y += this.dy;
     }
+}
+class ThrownGranade extends Projectile{
+  constructor(x, y, tx, ty, who) {
+    super(x, y, tx, ty, who);
+    this.img = tryToLoad("thrown_granade", "green");
+    let dist = d(x, y, tx, ty);
+    this.sx = 15;
+    this.sy = 15;
+    this.speed = 10;
+    this.dx = (tx - x) / dist * this.speed;
+    this.dy = (ty - y) / dist * this.speed;
+    this.ang = Math.atan2(ty-y, tx-x);
+    this.dmg = 5;
+    this.counter = 30;
+  }
+  update() {
+    super.update();
+    if (--this.counter == 0 || this.x == NaN) {
+      for (let i = 0; i < 3; ++i) {
+        projectiles.push(new Bullet(this.x, this.y, this.x + (i % 3 - 1) * 10 , this.y + 10, this.who));
+        projectiles.push(new Bullet(this.x, this.y, this.x + (i % 3 - 1) * 10, this.y, this.who));
+        projectiles.push(new Bullet(this.x, this.y, this.x + (i % 3 - 1) * 10, this.y - 10, this.who));
+      }
+      this.x = NaN;
+      return;
+    }
+    this.x += this.dx;
+    this.y += this.dy;
+  }
 }
 class Wall{
     constructor(x, y, sx, sy, angle){
